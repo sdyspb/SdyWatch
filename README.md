@@ -2,6 +2,8 @@
 
 Firmware for a custom smartwatch with analog LED display, scrolling matrix, compass, NTP time sync, alarms, and deep‑sleep power management.
 
+<img width="1251" height="844" alt="image" src="https://github.com/user-attachments/assets/67f83ad0-4cf7-4457-8042-333f3df41961" />
+
 ## Features
 
 - **Analog LED Display**  
