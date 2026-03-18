@@ -21,9 +21,9 @@
 #define CHARLIE_PIN_COUNT 14
 
 // ========== LED brightness (on-time in microseconds) ==========
-#define LED_ON_TIME_MINUTE   50   // for minute LEDs (60 pcs)
-#define LED_ON_TIME_HOUR     50   // for hour LEDs (one active)
-#define LED_ON_TIME_MATRIX   50   // for matrix LEDs (91 pcs)
+#define LED_ON_TIME_MINUTE   70   // for minute LEDs (60 pcs)
+#define LED_ON_TIME_HOUR     200  // for hour LEDs (one active)
+#define LED_ON_TIME_MATRIX   30   // for matrix LEDs (91 pcs)
 
 #define MINUTE_LEDS    60
 #define HOUR_DAY_LEDS  12
@@ -49,24 +49,27 @@
 #define BUTTON2_GPIO            39
 #define BUTTON_DEBOUNCE_TIME_MS 50
 
+// ========== Compass QMC5883L ==========
+#define QMC5883L_I2C_ADDRESS    0x0D   // 7‑bit address
+
 // ========== Scrolling matrix ==========
 #define SCROLL_SPEED_PPS        12      // pixels per second
 #define SCROLL_INTERVAL_MS      (1000 / SCROLL_SPEED_PPS)
 
 // ========== Sleep settings ==========
-#define INACTIVITY_TIMEOUT_MS   20000   // idle time before sleep (ms)
+#define INACTIVITY_TIMEOUT_MS   30000   // idle time before sleep (ms)
 
 // ========== Battery monitoring ==========
 #define LOW_BAT_THRESHOLD_MV    1900    // ADC voltage corresponding to ~3.2V battery
 #define EXTERNAL_PWR_THRESHOLD_MV 2200  // ADC voltage for external power (~3.7V battery)
 
 // ========== Wi‑Fi and NTP ==========
-#define WIFI_SSID       "Atom Software"
-#define WIFI_PASS       "Ferzone13"
+#define WIFI_SSID       "Aliens"
+#define WIFI_PASS       "Bishop 341-B"
 #define WIFI_MAX_RETRY  5
 #define NTP_SERVER1     "pool.ntp.org"
 #define NTP_SERVER2     "time.nist.gov"
-#define NTP_MAX_RETRY   40
+#define NTP_MAX_RETRY   20
 #define NTP_TIMEOUT_MS  10000
 
 // ========== Wake‑up source selection ==========
