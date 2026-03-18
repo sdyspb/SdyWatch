@@ -26,6 +26,7 @@
 #include <i2c.h>
 #include <sleep.h>
 
+// Внешние переменные из других модулей
 extern uint32_t last_activity_time;
 extern volatile bool ntp_active;
 extern SemaphoreHandle_t ntp_start_semaphore;
@@ -33,6 +34,7 @@ extern SemaphoreHandle_t ntp_start_semaphore;
 RTC_DATA_ATTR int current_mode = 0;
 bool mode_changed = false;
 
+// Прототипы функций
 void toggle_mode(void);
 void inactivity_task(void *arg);
 void accel_task(void *arg);
@@ -41,6 +43,7 @@ void accel_task(void *arg);
 #define INACTIVITY_TIMEOUT_MS 20000
 #endif
 
+// Задача мониторинга бездействия
 void inactivity_task(void *arg) {
     while (1) {
         uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
@@ -52,6 +55,7 @@ void inactivity_task(void *arg) {
     }
 }
 
+// Задача обработки акселерометра и обновления бегущей строки
 void accel_task(void *arg) {
     uint32_t last_debug = 0;
     uint32_t interrupt_count = 0;
@@ -65,6 +69,7 @@ void accel_task(void *arg) {
     while (1) {
         if (lis3dh_is_interrupted()) {
             interrupt_count++;
+            // printf("Interrupt #%lu caught!\n", interrupt_count);
         }
         lis3dh_check_clicks();
 
@@ -73,6 +78,7 @@ void accel_task(void *arg) {
         time_t now = tv.tv_sec;
         struct tm *t = localtime(&now);
 
+        // Обновляем время только если не в тестовом режиме, не LOW, не будильник
         if (!ntp_active && current_mode == 0 && !low_battery_mode && !matrix_display_is_test_active() && !alarm_active && t->tm_sec != last_second) {
             last_second = t->tm_sec;
             char time_str[32];
@@ -93,6 +99,7 @@ void accel_task(void *arg) {
         int level = gpio_get_level(ACCEL_INT_GPIO);
         if (level != last_level) {
             last_level = level;
+            // printf("GPIO37 level changed to %d at time %lld\n", level, (long long)esp_timer_get_time()); // отключено для чистоты консоли
         }
 
         uint32_t now_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
@@ -105,6 +112,7 @@ void accel_task(void *arg) {
     }
 }
 
+// Переключение режима часы/компас
 void toggle_mode(void) {
     current_mode = !current_mode;
     mode_changed = true;
@@ -140,6 +148,7 @@ void app_main(void) {
     register_alarm_commands();
     alarm_init();
 
+    // Настройка REPL (консоль)
     esp_console_repl_t *repl = NULL;
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
     repl_config.prompt = "watch>";

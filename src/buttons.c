@@ -8,6 +8,7 @@
 #include <matrix_display.h>
 #include <sleep.h>
 #include <alarm.h>
+#include <ntp_task.h>          // добавлено для start_ntp_task
 #include <config.h>
 
 extern void toggle_mode(void);
@@ -28,6 +29,8 @@ static struct {
     { BUTTON2_GPIO, true, true, 0 }
 };
 
+static TickType_t btn1_press_start = 0;
+static bool btn1_long_press_handled = false;
 static TickType_t btn2_press_start = 0;
 static bool btn2_long_press_handled = false;
 
@@ -66,19 +69,43 @@ static void debounce_button(int idx) {
                     ESP_LOGI(TAG, "Button %d PRESSED", idx+1);
                     last_activity_time = xTaskGetTickCount() * portTICK_PERIOD_MS;
 
-                    if (idx == 1) { // PB2
+                    if (idx == 0) { // PB1
+                        btn1_press_start = xTaskGetTickCount();
+                        btn1_long_press_handled = false;
+                    } else if (idx == 1) { // PB2
                         btn2_press_start = xTaskGetTickCount();
                         btn2_long_press_handled = false;
                     }
                 } else {
                     ESP_LOGI(TAG, "Button %d RELEASED", idx+1);
-                    if (idx == 1 && !btn2_long_press_handled) {
-                        TickType_t duration = xTaskGetTickCount() - btn2_press_start;
-                        if (duration >= pdMS_TO_TICKS(500)) {
-                            if (!button1_pressed()) {
-                                toggle_mode();   // long press PB2 switches mode
-                                btn2_long_press_handled = true;
+                    if (idx == 0) { // PB1 released
+                        TickType_t duration = xTaskGetTickCount() - btn1_press_start;
+                        if (!button2_pressed()) { // ensure PB2 not pressed simultaneously
+                            if (duration >= pdMS_TO_TICKS(500)) {
+                                // Long press: manual NTP sync
+                                ESP_LOGI(TAG, "PB1 long press - starting NTP sync");
+                                start_ntp_task();
+                                btn1_long_press_handled = true;
+                            } else {
+                                // Short press: cancel alarm or sleep
+                                if (alarm_active) {
+                                    alarm_deactivate();
+                                    ESP_LOGI(TAG, "Alarm deactivated by button");
+                                } else {
+                                    ESP_LOGI(TAG, "PB1 short press - entering deep sleep");
+                                    while (button1_pressed()) {
+                                        vTaskDelay(pdMS_TO_TICKS(10));
+                                    }
+                                    vTaskDelay(pdMS_TO_TICKS(20));
+                                    enter_sleep_by_button();
+                                }
                             }
+                        }
+                    } else if (idx == 1) { // PB2 released
+                        TickType_t duration = xTaskGetTickCount() - btn2_press_start;
+                        if (!button1_pressed() && duration >= pdMS_TO_TICKS(500) && !btn2_long_press_handled) {
+                            toggle_mode();
+                            btn2_long_press_handled = true;
                         }
                     }
                 }
@@ -97,7 +124,6 @@ bool button2_pressed(void) {
 
 void buttons_task(void *arg) {
     static bool last_both_pressed = false;
-    static bool last_button1_pressed = false;
 
     while (1) {
         debounce_button(0);
@@ -106,7 +132,7 @@ void buttons_task(void *arg) {
         bool button1 = button1_pressed();
         bool button2 = button2_pressed();
 
-        // Both buttons: vibration test + show "SDYWATCH V1.0"
+        // Both buttons pressed: test vibration + show "SDYWATCH V1.0"
         bool both_pressed = button1 && button2;
         if (both_pressed && !last_both_pressed) {
             buzzer_pulse(BUZZER_PULSE_MS);
@@ -115,22 +141,6 @@ void buttons_task(void *arg) {
             }
         }
         last_both_pressed = both_pressed;
-
-        // Single press of PB1 (rising edge): if alarm active -> cancel, else go to sleep
-        if (button1 && !last_button1_pressed && !button2) {
-            if (alarm_active) {
-                alarm_deactivate();
-                ESP_LOGI(TAG, "Alarm deactivated by button");
-            } else {
-                ESP_LOGI(TAG, "Button 1 pressed alone - entering deep sleep");
-                while (button1_pressed()) {
-                    vTaskDelay(pdMS_TO_TICKS(10));
-                }
-                vTaskDelay(pdMS_TO_TICKS(20));
-                enter_sleep_by_button();
-            }
-        }
-        last_button1_pressed = button1;
 
         vTaskDelay(pdMS_TO_TICKS(10));
     }
