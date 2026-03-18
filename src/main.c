@@ -1,8 +1,3 @@
-/*
- * main.c
- * Main entry point: initializes all modules, creates tasks, and starts console.
- */
-
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
@@ -16,6 +11,7 @@
 #include "esp_console.h"
 #include "argtable3/argtable3.h"
 #include "linenoise/linenoise.h"
+#include "nvs_flash.h"                     // <--- добавлено
 #include <led_matrix.h>
 #include <matrix_display.h>
 #include <buttons.h>
@@ -46,7 +42,6 @@ void accel_task(void *arg);
 #define INACTIVITY_TIMEOUT_MS 20000
 #endif
 
-// Idle timeout task: sleeps if no activity and not on external power
 void inactivity_task(void *arg) {
     while (1) {
         uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
@@ -58,7 +53,6 @@ void inactivity_task(void *arg) {
     }
 }
 
-// Accelerometer task: handles interrupts and updates time on matrix
 void accel_task(void *arg) {
     uint32_t last_debug = 0;
     uint32_t interrupt_count = 0;
@@ -72,7 +66,7 @@ void accel_task(void *arg) {
     while (1) {
         if (lis3dh_is_interrupted()) {
             interrupt_count++;
-            // printf("Interrupt #%lu caught!\n", interrupt_count); // Disabled to avoid console clutter
+            // printf("Interrupt #%lu caught!\n", interrupt_count); // disabled
         }
         lis3dh_check_clicks();
 
@@ -81,7 +75,6 @@ void accel_task(void *arg) {
         time_t now = tv.tv_sec;
         struct tm *t = localtime(&now);
 
-        // Update time string only if in clock mode, not low battery, not test mode, no alarm, and second changed
         if (!ntp_active && current_mode == 0 && !low_battery_mode && !matrix_display_is_test_active() && !alarm_active && t->tm_sec != last_second) {
             last_second = t->tm_sec;
             char time_str[32];
@@ -102,20 +95,19 @@ void accel_task(void *arg) {
         int level = gpio_get_level(ACCEL_INT_GPIO);
         if (level != last_level) {
             last_level = level;
-            // printf("GPIO37 level changed to %d at time %lld\n", level, (long long)esp_timer_get_time()); // Disabled
+            // printf("GPIO37 level changed to %d at time %lld\n", level, (long long)esp_timer_get_time()); // disabled
         }
 
         uint32_t now_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
         if (now_ms - last_debug > 5000) {
             last_debug = now_ms;
-            lis3dh_print_debug();   // optional debug (currently empty)
+            lis3dh_print_debug();
         }
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
-// Switch between clock and compass modes (called from button task)
 void toggle_mode(void) {
     current_mode = !current_mode;
     mode_changed = true;
@@ -127,9 +119,20 @@ void app_main(void) {
 
     ntp_start_semaphore = xSemaphoreCreateBinary();
 
+    // NVS initialisation (required for Wi‑Fi)
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
     if (wakeup_cause == ESP_SLEEP_WAKEUP_UNDEFINED) {
         clock_rtc_init();
-        xTaskCreatePinnedToCore(ntp_task, "ntp_task", 4096, NULL, 2, NULL, 0);
+        BaseType_t res = xTaskCreatePinnedToCore(ntp_task, "ntp_task", 16384, NULL, 2, NULL, 0);
+        if (res != pdPASS) {
+            printf("Failed to create initial NTP task\n");
+        }
     } else {
         printf("Wakeup from deep sleep (cause %d), RTC time preserved. NTP skipped.\n", wakeup_cause);
         xSemaphoreGive(ntp_start_semaphore);
@@ -151,7 +154,7 @@ void app_main(void) {
     register_alarm_commands();
     alarm_init();
 
-    // Start console REPL
+    // Console REPL
     esp_console_repl_t *repl = NULL;
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
     repl_config.prompt = "watch>";
@@ -160,7 +163,6 @@ void app_main(void) {
     ESP_ERROR_CHECK(esp_console_new_repl_uart(&uart_config, &repl_config, &repl));
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
 
-    // Create application tasks
     xTaskCreatePinnedToCore(led_matrix_task, "led_matrix", 4096, NULL, 1, NULL, 1);
     xTaskCreatePinnedToCore(buttons_task, "buttons", 2048, NULL, 2, NULL, 1);
     xTaskCreatePinnedToCore(accel_task, "accel", 4096, NULL, 1, NULL, 0);

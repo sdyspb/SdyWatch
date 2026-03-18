@@ -1,8 +1,3 @@
-/*
- * ntp_task.c
- * NTP synchronization task with countdown display and protection against multiple instances.
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -31,6 +26,8 @@ static EventGroupHandle_t wifi_event_group;
 const int WIFI_CONNECTED_BIT = BIT0;
 static bool wifi_should_retry = true;
 static bool ntp_synced = false;
+static bool network_initialized = false;   // флаг однократной инициализации сети
+static bool sntp_initialized = false;      // флаг однократной инициализации SNTP
 
 static void event_handler(void* arg, esp_event_base_t event_base,
                           int32_t event_id, void* event_data);
@@ -58,18 +55,22 @@ static void time_sync_cb(struct timeval *tv) {
 static bool wifi_connect(void) {
     wifi_event_group = xEventGroupCreate();
 
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_create_default_wifi_sta();
+    if (!network_initialized) {
+        // Один раз инициализируем сетевой стек
+        ESP_ERROR_CHECK(esp_netif_init());
+        ESP_ERROR_CHECK(esp_event_loop_create_default());
+        esp_netif_create_default_wifi_sta();
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+        wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+        ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    esp_event_handler_instance_t instance_any_id, instance_got_ip;
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
-                                                        &event_handler, NULL, &instance_any_id));
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
-                                                        &event_handler, NULL, &instance_got_ip));
+        esp_event_handler_instance_t instance_any_id, instance_got_ip;
+        ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID,
+                                                            &event_handler, NULL, &instance_any_id));
+        ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP,
+                                                            &event_handler, NULL, &instance_got_ip));
+        network_initialized = true;
+    }
 
     wifi_config_t wifi_config = {
         .sta = {
@@ -93,11 +94,19 @@ static bool ntp_sync_with_countdown(void) {
     const int max_retry = NTP_MAX_RETRY;
     char num_str[8];
 
-    esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    esp_sntp_setservername(0, NTP_SERVER1);
-    esp_sntp_setservername(1, NTP_SERVER2);
-    sntp_set_time_sync_notification_cb(time_sync_cb);
-    sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
+    // Останавливаем SNTP, если он был запущен ранее
+    esp_sntp_stop();
+
+    if (!sntp_initialized) {
+        // Настраиваем SNTP один раз
+        esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
+        esp_sntp_setservername(0, NTP_SERVER1);
+        esp_sntp_setservername(1, NTP_SERVER2);
+        sntp_set_time_sync_notification_cb(time_sync_cb);
+        sntp_set_sync_mode(SNTP_SYNC_MODE_IMMED);
+        sntp_initialized = true;
+    }
+
     esp_sntp_init();
 
     int remaining = max_retry - retry;
@@ -115,6 +124,7 @@ static bool ntp_sync_with_countdown(void) {
 
     if (ntp_synced) {
         vTaskDelay(pdMS_TO_TICKS(200));
+        // Часовой пояс уже установлен в main, но повторная установка безопасна
         setenv("TZ", "MSK-3", 1);
         tzset();
         buzzer_pulse(BUZZER_PULSE_MS);
@@ -130,13 +140,6 @@ void ntp_task(void *pvParameters) {
     if (ntp_start_semaphore != NULL) {
         xSemaphoreGive(ntp_start_semaphore);
     }
-
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
 
     wifi_should_retry = true;
     bool wifi_ok = wifi_connect();
@@ -154,9 +157,11 @@ void ntp_task(void *pvParameters) {
 }
 
 void start_ntp_task(void) {
-    // Prevent starting multiple NTP tasks simultaneously
     if (!ntp_active) {
-        xTaskCreate(ntp_task, "ntp_task", 4096, NULL, 1, NULL);
+        BaseType_t res = xTaskCreate(ntp_task, "ntp_task", 16384, NULL, 1, NULL);
+        if (res != pdPASS) {
+            printf("Failed to create NTP task\n");
+        }
     } else {
         printf("NTP sync already in progress\n");
     }

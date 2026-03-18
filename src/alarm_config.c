@@ -6,7 +6,10 @@
 
 alarm_config_t alarm_config;
 
+// Значения по умолчанию
 void alarm_config_init(void) {
+    printf("alarm_config_init() called\n");
+        
     for (int i = 0; i < MAX_ALARMS; i++) {
         alarm_config.alarms[i].hour = 7;
         alarm_config.alarms[i].minute = 0;
@@ -15,7 +18,7 @@ void alarm_config_init(void) {
     }
 }
 
-// ---------- Command: alarm_show ----------
+// ---------- Команда alarm show ----------
 static struct {
     struct arg_end *end;
 } show_args;
@@ -45,7 +48,7 @@ static void register_show(void) {
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
 
-// ---------- Command: alarm_set ----------
+// ---------- Команда alarm set ----------
 static struct {
     struct arg_int *index;
     struct arg_int *hour;
@@ -61,7 +64,7 @@ static int set_cmd(int argc, char **argv) {
         return 1;
     }
 
-    int idx = set_args.index->ival[0] - 1; // 1‑based to 0‑based
+    int idx = set_args.index->ival[0] - 1; // 1-based to 0-based
     if (idx < 0 || idx >= MAX_ALARMS) {
         printf("Error: index must be 1..%d\n", MAX_ALARMS);
         return 1;
@@ -104,7 +107,7 @@ static void register_set(void) {
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
 
-// ---------- Command: alarm_enable ----------
+// ---------- Команда alarm enable ----------
 static struct {
     struct arg_int *index;
     struct arg_int *enable;
@@ -150,7 +153,7 @@ static void register_enable(void) {
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
 
-// Register all commands
+// Регистрация всех команд (без help, т.к. REPL предоставляет встроенную help)
 void register_alarm_commands(void) {
     register_show();
     register_set();
