@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>SdyWatch Firmware Flasher</title>
+    <title>SdyWatch Firmware Updater</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
@@ -16,90 +16,30 @@
         h1 {
             color: #333;
         }
-        .button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 15px 32px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 20px 2px;
-            cursor: pointer;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        #status {
-            margin: 20px 0;
-            padding: 10px;
-            border-radius: 4px;
-            background: white;
-            border: 1px solid #ddd;
-            text-align: left;
-            font-family: monospace;
-            white-space: pre-wrap;
-        }
         .info {
             color: #666;
             font-size: 0.9em;
+            margin-top: 30px;
         }
+        /* Стили для кнопки задаются внутри компонента, дополнительно можно настроить */
     </style>
+    <!-- Импортируем библиотеку как модуль -->
+    <script type="module" src="https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module"></script>
 </head>
 <body>
     <h1>🕒 SdyWatch Firmware Updater</h1>
     <p>Click the button below to flash your SdyWatch via Web Serial.</p>
-    <button id="flash-button" class="button">Connect & Flash</button>
-    <div id="status">Ready. Click the button and select the correct serial port (usually CP210x or CH340).</div>
 
-    <!-- Include ESP Web Tools library -->
-    <script type="module">
-        // https://esphome.github.io/esp-web-tools/
-        import { flash } from 'https://unpkg.com/esp-web-tools@9/dist/web/install-button.js?module';
+    <!-- Используем пользовательский элемент библиотеки -->
+    <esp-web-install-button manifest="manifest.json">
+        <button slot="activate">Connect & Flash</button>
+        <div slot="unsupported">Your browser does not support Web Serial. Use Chrome, Edge or Opera.</div>
+        <div slot="not-allowed">You need to use HTTPS or localhost to flash.</div>
+    </esp-web-install-button>
 
-        const button = document.getElementById('flash-button');
-        const statusDiv = document.getElementById('status');
-
-        // Update status helper
-        function setStatus(text, isError = false) {
-            statusDiv.innerText = text;
-            if (isError) {
-                statusDiv.style.backgroundColor = '#ffebee';
-            } else {
-                statusDiv.style.backgroundColor = 'white';
-            }
-        }
-
-        // Handle flash button click
-        button.addEventListener('click', async () => {
-            setStatus('Connecting...');
-            button.disabled = true;
-
-            try {
-                // Path to manifest.json (relative to this HTML file)
-                // If hosted on GitHub Pages, ensure the manifest is in the same directory
-                const manifestURL = new URL('manifest.json', window.location.href).href;
-
-                // Start flashing process
-                const result = await flash({
-                    manifest: manifestURL,
-                    verbose: true // Set to false to reduce console output
-                });
-
-                setStatus('✅ Flashing complete! Your device should restart.\n' + 
-                         'If it doesn\'t, press the reset button on the board.');
-            } catch (error) {
-                console.error(error);
-                setStatus('❌ Error: ' + error.message, true);
-            } finally {
-                button.disabled = false;
-            }
-        });
-    </script>
+    <div id="status" style="margin:20px 0; padding:10px; background:white; border:1px solid #ddd; border-radius:4px; text-align:left; font-family:monospace;">
+        Ready. Connect your SdyWatch (ESP32) via USB.
+    </div>
 
     <div class="info">
         <p><strong>Instructions:</strong><br>
@@ -109,5 +49,23 @@
         4. Wait for the flashing process to complete. Do not disconnect during the process.</p>
         <p>Firmware version: 1.0.0</p>
     </div>
+
+    <script type="module">
+        // Добавим небольшую логику для отображения статуса
+        const statusDiv = document.getElementById('status');
+        const button = document.querySelector('esp-web-install-button');
+
+        button.addEventListener('flash-start', () => {
+            statusDiv.innerText = '⏳ Flashing started... Please wait.';
+        });
+
+        button.addEventListener('flash-finish', () => {
+            statusDiv.innerText = '✅ Flashing complete! Your device should restart.';
+        });
+
+        button.addEventListener('flash-error', (e) => {
+            statusDiv.innerText = '❌ Error: ' + e.detail.message;
+        });
+    </script>
 </body>
 </html>
