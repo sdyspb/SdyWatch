@@ -95,6 +95,7 @@ All user‑adjustable settings are in `include/config.h`. Key parameters:
 
 Connect to the UART (115200) and type:
 
+```console
 watch> alarm_show
 === Alarm Configuration ===
 Alarm 1: DISABLED 07:00 "Alarm 1"
@@ -111,7 +112,7 @@ watch> alarm_show
 Alarm 1: ENABLED 08:30 "Good morning"
 Alarm 2: DISABLED 07:00 "Alarm 2"
 Alarm 3: DISABLED 07:00 "Alarm 3"
-
+```
 
 ## Building and Flashing
 
