@@ -1,0 +1,34 @@
+{
+  "name": "SdyWatch Firmware",
+  "version": "1.0.0",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "flashFrequency": "80MHz",
+      "flashMode": "dio",
+      "flashSize": "4MB",
+      "parts": [
+        {
+          "path": "bootloader.bin",
+          "offset": 4096,
+          "sha256": "712940952a2731ebe21ec02828d5d037cce86c477862586c03ca0cc396a94630"
+        },
+        {
+          "path": "partitions.bin",
+          "offset": 32768,
+          "sha256": "7f00b6c042a89b15b0cac534f82ed988caf29278ff5700b0c511eb1b5bb7c820"
+        },
+        {
+          "path": "boot_app0.bin",
+          "offset": 57344,
+          "sha256": "f94c5d786a7a8fab06ac5d10e33bf37711a6697636dc037559ea19cc410a17f0"
+        },
+        {
+          "path": "firmware.bin",
+          "offset": 65536,
+          "sha256": "3c2ef19e365640a5ce84edc7c86db0bfd43ff98aa3f3e51eaddcc896a9ef69cd"
+        }
+      ]
+    }
+  ]
+}
