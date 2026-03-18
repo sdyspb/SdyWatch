@@ -1,3 +1,8 @@
+/*
+ * buttons.c
+ * Handles button debouncing, long press detection, and various actions.
+ */
+
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -8,7 +13,7 @@
 #include <matrix_display.h>
 #include <sleep.h>
 #include <alarm.h>
-#include <ntp_task.h>          // добавлено для start_ntp_task
+#include <ntp_task.h>
 #include <config.h>
 
 extern void toggle_mode(void);

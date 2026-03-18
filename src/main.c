@@ -1,3 +1,8 @@
+/*
+ * main.c
+ * Main entry point: initializes all modules, creates tasks, and starts console.
+ */
+
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
@@ -26,7 +31,6 @@
 #include <i2c.h>
 #include <sleep.h>
 
-// Внешние переменные из других модулей
 extern uint32_t last_activity_time;
 extern volatile bool ntp_active;
 extern SemaphoreHandle_t ntp_start_semaphore;
@@ -34,7 +38,6 @@ extern SemaphoreHandle_t ntp_start_semaphore;
 RTC_DATA_ATTR int current_mode = 0;
 bool mode_changed = false;
 
-// Прототипы функций
 void toggle_mode(void);
 void inactivity_task(void *arg);
 void accel_task(void *arg);
@@ -43,7 +46,7 @@ void accel_task(void *arg);
 #define INACTIVITY_TIMEOUT_MS 20000
 #endif
 
-// Задача мониторинга бездействия
+// Idle timeout task: sleeps if no activity and not on external power
 void inactivity_task(void *arg) {
     while (1) {
         uint32_t now = xTaskGetTickCount() * portTICK_PERIOD_MS;
@@ -55,7 +58,7 @@ void inactivity_task(void *arg) {
     }
 }
 
-// Задача обработки акселерометра и обновления бегущей строки
+// Accelerometer task: handles interrupts and updates time on matrix
 void accel_task(void *arg) {
     uint32_t last_debug = 0;
     uint32_t interrupt_count = 0;
@@ -69,7 +72,7 @@ void accel_task(void *arg) {
     while (1) {
         if (lis3dh_is_interrupted()) {
             interrupt_count++;
-            // printf("Interrupt #%lu caught!\n", interrupt_count);
+            // printf("Interrupt #%lu caught!\n", interrupt_count); // Disabled to avoid console clutter
         }
         lis3dh_check_clicks();
 
@@ -78,7 +81,7 @@ void accel_task(void *arg) {
         time_t now = tv.tv_sec;
         struct tm *t = localtime(&now);
 
-        // Обновляем время только если не в тестовом режиме, не LOW, не будильник
+        // Update time string only if in clock mode, not low battery, not test mode, no alarm, and second changed
         if (!ntp_active && current_mode == 0 && !low_battery_mode && !matrix_display_is_test_active() && !alarm_active && t->tm_sec != last_second) {
             last_second = t->tm_sec;
             char time_str[32];
@@ -99,20 +102,20 @@ void accel_task(void *arg) {
         int level = gpio_get_level(ACCEL_INT_GPIO);
         if (level != last_level) {
             last_level = level;
-            // printf("GPIO37 level changed to %d at time %lld\n", level, (long long)esp_timer_get_time()); // отключено для чистоты консоли
+            // printf("GPIO37 level changed to %d at time %lld\n", level, (long long)esp_timer_get_time()); // Disabled
         }
 
         uint32_t now_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
         if (now_ms - last_debug > 5000) {
             last_debug = now_ms;
-            lis3dh_print_debug();
+            lis3dh_print_debug();   // optional debug (currently empty)
         }
 
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
-// Переключение режима часы/компас
+// Switch between clock and compass modes (called from button task)
 void toggle_mode(void) {
     current_mode = !current_mode;
     mode_changed = true;
@@ -148,7 +151,7 @@ void app_main(void) {
     register_alarm_commands();
     alarm_init();
 
-    // Настройка REPL (консоль)
+    // Start console REPL
     esp_console_repl_t *repl = NULL;
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
     repl_config.prompt = "watch>";
@@ -157,6 +160,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(esp_console_new_repl_uart(&uart_config, &repl_config, &repl));
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
 
+    // Create application tasks
     xTaskCreatePinnedToCore(led_matrix_task, "led_matrix", 4096, NULL, 1, NULL, 1);
     xTaskCreatePinnedToCore(buttons_task, "buttons", 2048, NULL, 2, NULL, 1);
     xTaskCreatePinnedToCore(accel_task, "accel", 4096, NULL, 1, NULL, 0);
