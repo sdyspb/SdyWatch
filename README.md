@@ -124,3 +124,53 @@ This project uses **PlatformIO** with the **ESP-IDF** framework.
 4. Upload: `pio run -t upload` (connect via USB‑UART, press BOOT+EN to enter download mode).
 5. Monitor: `pio device monitor -b 115200`
 
+## Flashing Firmware via Web Browser
+You can update your SdyWatch firmware directly from your browser using the ESP Web Tools – no need to install any development tools.
+
+### 🖥️ Requirements
+A computer with Google Chrome, Microsoft Edge, or Opera (Web Serial API support).
+
+USB cable to connect the watch.
+
+Drivers for the USB‑to‑UART bridge (CP210x or CH340) installed on your system.
+
+### 📦 What You Need
+All necessary files are already hosted on GitHub Pages. You only need a browser and the USB connection.
+
+### 🔌 Flashing Procedure
+Connect your SdyWatch to the computer with a USB cable.
+
+Open the following page in your browser:
+https://sdyspb.github.io/SdyWatch/
+
+Click the Connect & Flash button.
+
+In the system dialog, select the correct serial port (it usually contains the name of the USB‑UART chip CH340).
+
+Confirm the connection – the flashing process will start automatically.
+A countdown and progress messages will appear on the page.
+
+Do not disconnect the device until you see the “Flashing complete!” message.
+
+After success, your watch will reboot with the new firmware.
+(If it does not restart automatically, press the hardware reset button.)
+
+### ⚠️ Important Notes
+The first time you flash, the browser may ask for permission to access the serial port – allow it.
+
+If the flashing fails, try the following:
+
+Close any other program that might be using the serial port (IDE monitor, terminal emulator).
+
+Manually put the ESP32 into bootloader mode: hold the BOOT button, press and release EN, then release BOOT.
+
+Use a different USB cable or port.
+
+After flashing, all alarm settings and compass calibration will be reset to defaults. You can reconfigure them via the UART console (see the main README).
+
+### 🔗 Resources
+Firmware repository: https://github.com/sdyspb/SdyWatch
+
+Web flasher page: https://sdyspb.github.io/SdyWatch/
+
+
