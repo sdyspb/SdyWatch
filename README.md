@@ -169,8 +169,8 @@ Use a different USB cable or port.
 After flashing, all alarm settings and compass calibration will be reset to defaults. You can reconfigure them via the UART console (see the main README).
 
 ### 🔗 Resources
-Firmware repository: https://github.com/sdyspb/SdyWatch
-Web flasher page: https://sdyspb.github.io/SdyWatch/
+1. Firmware repository: https://github.com/sdyspb/SdyWatch
+1. Web flasher page: https://sdyspb.github.io/SdyWatch/
 
 ## License
 This project is licensed under the GNU General Public License v2.0 (GPL-2.0).
