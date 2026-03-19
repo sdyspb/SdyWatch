@@ -171,6 +171,31 @@ After flashing, all alarm settings and compass calibration will be reset to defa
 ### 🔗 Resources
 Firmware repository: https://github.com/sdyspb/SdyWatch
 
+## License
+This project is licensed under the GNU General Public License v2.0 (GPL-2.0).
+You can find the full license text in the LICENSE file or at https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html.
+
+### Acknowledgments & Dependencies
+This firmware uses the following open-source components:
+
+**ESP-IDF** – the official development framework for ESP32, licensed under Apache License 2.0.
+https://github.com/espressif/esp-idf
+
+**argtable3** – a command‑line argument parsing library, licensed under BSD 3-Clause.
+https://github.com/argtable/argtable3
+
+**linenoise** – a small readline replacement, licensed under BSD 2-Clause.
+https://github.com/antirez/linenoise
+
+**esp-web-tools** – JavaScript library for flashing ESP devices from a browser, licensed under Apache License 2.0.
+https://github.com/espressif/esp-web-tools
+
+**QMC5883LCompass** (used for calibration sketch) – Arduino library for QMC5883L, license unknown (included for reference).
+https://github.com/ejoyneering/QMC5883LCompass
+
+**LIS3DH driver** – based on standard ESP-IDF I2C examples and datasheet.
+
+If you believe any component is missing or incorrectly attributed, please open an issue.
 Web flasher page: https://sdyspb.github.io/SdyWatch/
 
 
