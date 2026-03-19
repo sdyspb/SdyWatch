@@ -170,6 +170,7 @@ After flashing, all alarm settings and compass calibration will be reset to defa
 
 ### 🔗 Resources
 Firmware repository: https://github.com/sdyspb/SdyWatch
+Web flasher page: https://sdyspb.github.io/SdyWatch/
 
 ## License
 This project is licensed under the GNU General Public License v2.0 (GPL-2.0).
@@ -196,6 +197,5 @@ https://github.com/ejoyneering/QMC5883LCompass
 **LIS3DH driver** – based on standard ESP-IDF I2C examples and datasheet.
 
 If you believe any component is missing or incorrectly attributed, please open an issue.
-Web flasher page: https://sdyspb.github.io/SdyWatch/
 
 
