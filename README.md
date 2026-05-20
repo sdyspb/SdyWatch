@@ -1,6 +1,6 @@
 # ESP32-PICO-D4 SdyWatch
 
-ESP32-PICO-D4 SdyWatch or shortly LedTick is a custom DIY watch with combined analogue and digital display based solely on discrete LEDs
+ESP32-PICO-D4 SdyWatch or LedTick for short is a custom DIY watch with combined analogue and digital display based solely on discrete LEDs
 
 Firmware for a custom smartwatch with analog LED display, scrolling matrix, compass, NTP time sync, alarms, and deep‑sleep power management.
 
@@ -70,7 +70,7 @@ Firmware for a custom smartwatch with analog LED display, scrolling matrix, comp
 
 ## Hardware Requirements
 
-- ESP32‑PICO‑D4 module (or any ESP32 with enough GPIOs)
+- ESP32‑PICO‑D4 chip (or any ESP32 with enough GPIOs)
 - 175 LEDs arranged as described (60 green, 12+12 bicolor, 91 for matrix)
 - Charlieplexing matrix wiring (5 cathodes, 14 anodes – pins defined in `config.h`)
 - External 32.768 kHz crystal for RTC (pins 32,33)
